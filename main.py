@@ -42,14 +42,15 @@ I_NAME, I_COMPANY, IC_WEBSITE, I_LINKEDIN = range(20, 24)
 # METHODS
 async def start(update: Update, context: CallbackContext) -> int:
     """Starts the conversation and asks the user about their gender."""
+
     reply_keyboard = [["Company", "Investor"]]
 
     await update.message.reply_text(
-        "Hi! My name is Professor Bot. I will hold a conversation with you. "
-        "Send /cancel to stop talking to me.\n\n"
-        "Are you a company or an investor?",
+        "Hi! My name is " + context.bot.name + ". I will hold a conversation with you. "
+                                               "Send /cancel to stop talking to me.\n\n"
+                                               "Are you a company or an investor?",
         reply_markup=ReplyKeyboardMarkup(
-            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Boy or Girl?"
+            reply_keyboard, one_time_keyboard=True, input_field_placeholder="company or investor?"
         ),
     )
 
@@ -129,7 +130,7 @@ async def cancel(update: Update, context: CallbackContext) -> int:
     await update.message.reply_text(
         "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
     )
-
+    context.user_data.clear()
     return ConversationHandler.END
 
 
@@ -141,7 +142,7 @@ async def input_type(update: Update, context: CallbackContext) -> int:
     if u_type == "company":
         msg = "I see! Please tell us your company name."
     if u_type == "investor":
-        msg = "I see! Please us your name."
+        msg = "Hello! Please tell me your full name"
     logger.info("Input Type of %s: %s", user.first_name, update.message.text)
     await update.message.reply_text(
         msg,
@@ -194,6 +195,7 @@ def facts_to_str(user_data: Dict[str, str]) -> str:
     facts = [f"{key} - {value}" for key, value in user_data.items()]
     return "\n".join(facts).join(["\n", "\n"])
 
+
 async def company_handler(update: Update, context: CallbackContext) -> int:
     print(context.user_data)
     user_data = context.user_data
@@ -212,25 +214,111 @@ async def company_handler(update: Update, context: CallbackContext) -> int:
         context.user_data['CATEGORY'] = 'C_WEBSITE'
         return C_NAME
     if 'C_ABOUT' not in user_data.keys():
-        await update.message.reply_text(f"Can you tell us more about {text.lower()}!")
+        await update.message.reply_text(f"Can you tell us more about {user_data['C_NAME']}!")
         context.user_data['CATEGORY'] = 'C_ABOUT'
         return C_NAME
     if {'C_NAME', 'C_WEBSITE', 'C_ABOUT'} <= user_data.keys():
         await update.message.reply_text(
-            "Neat! Just so you know, this is what you already told me:"
+            "Info:"
             f"{facts_to_str(user_data)}"
-            "information submitted successfully.",
-
         )
-        #context.user_data={}
+        await update.message.reply_text(
+            f" Thank you {update.message.from_user.first_name}! your information successfully saved"
+        )
+        # context.user_data={}
+        context.user_data.clear()
+
         return ConversationHandler.END
 
     print(user_data)
 
 
 async def investor_handler(update: Update, context: CallbackContext) -> int:
-    pass
+    print(context.user_data)
+    user_data = context.user_data
+    text = update.message.text
+    if not context.user_data['investor']:
+        await update.message.reply_text("Internal Error occurred! Please try again")
+        print("Error in Investor Handler")
+        return ConversationHandler.END
+    if 'I_NAME' not in user_data.keys():
+        context.user_data['I_NAME'] = update.message.text
+    else:
+        user_data[user_data["CATEGORY"]] = update.message.text
 
+    if 'I_INVESTED_IN' not in user_data.keys():
+        await update.message.reply_text(
+            f"Hey {user_data['I_NAME']}! Can you tell me the name of company in which you have invested?")
+        context.user_data['CATEGORY'] = 'I_INVESTED_IN'
+        return I_NAME
+    if 'I_WEBSITE' not in user_data.keys():
+        await update.message.reply_text(f"Nice!! Can provide us {user_data['I_INVESTED_IN']} Website?")
+        context.user_data['CATEGORY'] = 'I_WEBSITE'
+        return I_NAME
+    if 'I_HAS_LINKEDIN' not in user_data.keys():
+        await update.message.reply_text(f"{user_data['I_INVESTED_IN']} have linkedin account? Yes/No",
+                                        reply_markup=ReplyKeyboardMarkup([["Yes", "No"]], one_time_keyboard=True,
+                                                                         input_field_placeholder="Yes/No"
+                                                                         ))
+
+        context.user_data['CATEGORY'] = 'I_HAS_LINKEDIN'
+        return I_NAME
+    if 'I_LINKEDIN' not in user_data.keys():
+        if user_data['I_HAS_LINKEDIN'].lower() == "yes":
+            await update.message.reply_text(f"Please provide {user_data['I_INVESTED_IN']} linkedin profile link",
+                                            reply_markup=ReplyKeyboardRemove())
+            context.user_data['CATEGORY'] = 'I_LINKEDIN'
+            return I_NAME
+        else:
+            context.user_data['I_LINKEDIN'] = ""
+            await update.message.reply_text(f"No problem! Thank you!",
+                                            reply_markup=ReplyKeyboardRemove())
+    if {'I_NAME', 'I_INVESTED_IN', 'I_WEBSITE', 'I_HAS_LINKEDIN', 'I_LINKEDIN'} <= user_data.keys():
+        await update.message.reply_text(
+            "Info:"
+            f"{facts_to_str(user_data)}"
+        )
+        await update.message.reply_text(
+            f" Thank you {update.message.from_user.first_name}! your information successfully saved"
+        )
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    print(user_data)
+
+
+async def add_command_handler(update: Update, context: CallbackContext) -> int:
+    if not context.args:
+        await update.message.reply_text(
+            "Invalid arguments.:"
+            f"\n Syntax: /add company or /add investor"
+        )
+        return ConversationHandler.END
+    if not (context.args[0].lower() == 'investor' or context.args[0].lower() == 'company'):
+        await update.message.reply_text(
+            "Invalid argument.:"
+            f"\nSyntax: /add company or /add investor"
+        )
+        return ConversationHandler.END
+
+    u_type = context.args[0].lower()
+    user = update.message.from_user
+    context.user_data[u_type] = True
+    msg = "Something went wrong. Please try again"
+    if u_type == "company":
+        msg = "I see! Please tell us your company name."
+    if u_type == "investor":
+        msg = "Hello! Please tell me your full name"
+    logger.info("Input Type of %s: %s", user.first_name, update.message.text)
+    await update.message.reply_text(
+        msg,
+    )
+
+    print(context.user_data)
+    if u_type == "company":
+        return C_NAME
+    if u_type == "investor":
+        return I_NAME
 
 
 def main() -> None:
@@ -238,7 +326,7 @@ def main() -> None:
 
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[CommandHandler("start", start),CommandHandler("add", add_command_handler)],
         states={
             INPUT_TYPE: [MessageHandler(filters.Regex("^(Company|Investor)$"), input_type)],
             C_NAME: [MessageHandler(filters.TEXT, company_handler)],
@@ -256,10 +344,12 @@ def main() -> None:
             # ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+
+
     )
 
     application.add_handler(conv_handler)
-
+   # application.add_handler(CommandHandler("add", add_command_handler))
     application.run_polling(stop_signals=None)
 
 
