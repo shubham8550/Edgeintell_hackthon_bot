@@ -1,6 +1,9 @@
 # Imports
+import json
 import os
 import logging
+
+import requests
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (
@@ -16,6 +19,8 @@ from typing import Dict
 
 # Bootstrap
 load_dotenv()
+INVESTOR_APPSCRIPT_URL= os.getenv('INVESTOR_APPSCRIPT_URL')
+COMPANY_APPSCRIPT_URL= os.getenv('COMPANY_APPSCRIPT_URL')
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 # Enable logging
 logging.basicConfig(
@@ -24,6 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Constants
+
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
 
 
@@ -130,9 +136,31 @@ async def company_handler(update: Update, context: CallbackContext) -> int:
             "Here is your Details-"
             f"{facts_to_str(user_data)}"
         )
-        await update.message.reply_text(
-            f" Thank you {update.message.from_user.first_name}! your information successfully saved"
-        )
+
+        params = dict()
+        params["action"] = "read"
+        r = requests.get(COMPANY_APPSCRIPT_URL, params=params)
+        if r.status_code == 200:
+            print(r.content.decode('utf-8'))
+            data = json.loads(r.content.decode('utf-8'))
+            print(data)
+            for i in data['records']:
+                if i['Company_Name'].lower() == user_data['C_NAME'].lower():
+                    await update.message.reply_text("The Data you want to add is already registered")
+                    context.user_data.clear()
+                    return ConversationHandler.END
+
+            params = dict()
+            params["action"] = "insert"
+            params["name"] = user_data['C_NAME']
+            params["website"] = user_data['C_WEBSITE']
+            params["about"] = user_data['C_ABOUT']
+            r = requests.get(COMPANY_APPSCRIPT_URL, params=params)
+            print(r.status_code)
+
+            await update.message.reply_text(
+                f" Thank you {update.message.from_user.first_name}! your information successfully saved"
+            )
         context.user_data.clear()
 
         return ConversationHandler.END
@@ -187,9 +215,31 @@ async def investor_handler(update: Update, context: CallbackContext) -> int:
             f"{facts_to_str(user_data)}",
             reply_markup=ReplyKeyboardRemove()
         )
-        await update.message.reply_text(
-            f" Thank you {update.message.from_user.first_name}! your information successfully saved"
-        )
+        params = dict()
+        params["action"] = "read"
+        r = requests.get(INVESTOR_APPSCRIPT_URL, params=params)
+        if r.status_code == 200:
+            print(r.content.decode('utf-8'))
+            data = json.loads(r.content.decode('utf-8'))
+            print(data)
+            for i in data['records']:
+                if i['Investors_Name'].lower() == user_data['I_NAME'].lower():
+                    await update.message.reply_text("The Data you want to add is already registered")
+                    context.user_data.clear()
+                    return ConversationHandler.END
+
+            params = dict()
+            params["action"] = "insert"
+            params["name"] = user_data['I_NAME']
+            params["company"] = user_data['I_INVESTED_IN']
+            params["website"] = user_data['I_WEBSITE']
+            params["linkedin"] = user_data['I_LINKEDIN']
+            r = requests.get(INVESTOR_APPSCRIPT_URL, params=params)
+            print(r.status_code)
+
+            await update.message.reply_text(
+                f" Thank you {update.message.from_user.first_name}! your information successfully saved"
+            )
         context.user_data.clear()
         return ConversationHandler.END
 
