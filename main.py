@@ -100,10 +100,6 @@ async def start(update: Update, context: CallbackContext) -> int:
 #
 #     return TYPING_CHOICE
 #
-def facts_to_str(user_data: Dict[str, str]) -> str:
-    """Helper function for formatting the gathered user info."""
-    facts = [f"{key} - {value}" for key, value in user_data.items()]
-    return "\n".join(facts).join(["\n", "\n"])
 
 
 #
@@ -190,10 +186,30 @@ async def input_type(update: Update, context: CallbackContext) -> int:
 #     if "investor" in user_data.keys():
 #         return I_NAME
 
+# def facts_to_str(user_data: Dict[str, str]) -> str:
+#     """Helper function for formatting the gathered user info."""
+#     facts = [f"{key} - {value}" for key, value in user_data.items()]
+#     return "\n".join(facts).join(["\n", "\n"])
 def facts_to_str(user_data: Dict[str, str]) -> str:
     """Helper function for formatting the gathered user info."""
-    facts = [f"{key} - {value}" for key, value in user_data.items()]
-    return "\n".join(facts).join(["\n", "\n"])
+    print("Test facts")
+
+    facts = "Something is wrong! Please try again"
+    if 'company' in user_data.keys():
+        facts = f"\n" \
+                f"Company - {user_data['C_NAME']}\n" \
+                f"Website - {user_data['C_WEBSITE']}\n" \
+                f"About   - {user_data['C_ABOUT']}\n"
+
+    if 'investor' in user_data.keys():
+        facts = f"\n" \
+                f"Name - {user_data['I_NAME']}\n" \
+                f"Invested in - {user_data['I_INVESTED_IN']}\n" \
+                f"Website - {user_data['I_WEBSITE']}\n"
+        if user_data['I_HAS_LINKEDIN'].lower() == 'yes':
+            facts += f"LinkedIn   - {user_data['I_LINKEDIN']}\n"
+
+    return facts
 
 
 async def company_handler(update: Update, context: CallbackContext) -> int:
@@ -219,7 +235,7 @@ async def company_handler(update: Update, context: CallbackContext) -> int:
         return C_NAME
     if {'C_NAME', 'C_WEBSITE', 'C_ABOUT'} <= user_data.keys():
         await update.message.reply_text(
-            "Info:"
+            "Here is your Details-"
             f"{facts_to_str(user_data)}"
         )
         await update.message.reply_text(
@@ -273,10 +289,12 @@ async def investor_handler(update: Update, context: CallbackContext) -> int:
             context.user_data['I_LINKEDIN'] = ""
             await update.message.reply_text(f"No problem! Thank you!",
                                             reply_markup=ReplyKeyboardRemove())
+
     if {'I_NAME', 'I_INVESTED_IN', 'I_WEBSITE', 'I_HAS_LINKEDIN', 'I_LINKEDIN'} <= user_data.keys():
         await update.message.reply_text(
-            "Info:"
-            f"{facts_to_str(user_data)}"
+            "Here is your Details- "
+            f"{facts_to_str(user_data)}",
+            reply_markup=ReplyKeyboardRemove()
         )
         await update.message.reply_text(
             f" Thank you {update.message.from_user.first_name}! your information successfully saved"
@@ -326,7 +344,7 @@ def main() -> None:
 
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start),CommandHandler("add", add_command_handler)],
+        entry_points=[CommandHandler("start", start), CommandHandler("add", add_command_handler)],
         states={
             INPUT_TYPE: [MessageHandler(filters.Regex("^(Company|Investor)$"), input_type)],
             C_NAME: [MessageHandler(filters.TEXT, company_handler)],
@@ -345,11 +363,10 @@ def main() -> None:
         },
         fallbacks=[CommandHandler("cancel", cancel)],
 
-
     )
 
     application.add_handler(conv_handler)
-   # application.add_handler(CommandHandler("add", add_command_handler))
+    # application.add_handler(CommandHandler("add", add_command_handler))
     application.run_polling(stop_signals=None)
 
 
