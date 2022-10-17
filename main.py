@@ -4,12 +4,10 @@ import logging
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (
-    Updater,
     CommandHandler,
-    ContextTypes,
     ConversationHandler,
     MessageHandler,
-    filters, CallbackContext, PicklePersistence,
+    filters, CallbackContext,
 
 )
 from telegram.ext import ApplicationBuilder
@@ -27,12 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Constants
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
-reply_keyboard = [
-    ["a company", "an Investor"],
-    ["About Us"],
-    ["Done"],
-]
-markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+
 
 INPUT_TYPE, TYPING_REPLY = range(0, 2)
 C_NAME, C_WEBSITE, C_ABOUT = range(10, 13)
@@ -56,69 +49,6 @@ async def start(update: Update, context: CallbackContext) -> int:
 
     return INPUT_TYPE
 
-
-# async def done(update: Update, context:CallbackContext) -> int:
-#     """Display the gathered info and end the conversation."""
-#     user_data = context.user_data
-#     if "choice" in user_data:
-#         del user_data["choice"]
-#
-#     await update.message.reply_text(
-#         f"I learned these facts about you: {facts_to_str(user_data)}Until next time!",
-#         reply_markup=ReplyKeyboardRemove(),
-#     )
-#
-#     user_data.clear()
-#     return ConversationHandler.END
-#
-# async def regular_choice(update: Update, context:CallbackContext) -> int:
-#     """Ask the user for info about the selected predefined choice."""
-#     text = update.message.text
-#     context.user_data["choice"] = text
-#     await update.message.reply_text(f"Your {text.lower()}? Yes, I would love to hear about that!")
-#
-#     return TYPING_REPLY
-#
-# def qa_choices(text):
-#     text=text.lower()
-#     # if text == "company name":
-# async def qa_regular_choice(update: Update, context:CallbackContext) -> int:
-#     """Ask the user for info about the selected predefined choice."""
-#     text = update.message.text
-#     context.user_data["choice"] = text
-#
-#     await update.message.reply_text(f"Please {text.lower()}? Yes, I would love to hear about that!")
-#
-#     return TYPING_REPLY
-#
-#
-# async def custom_choice(update: Update, context:CallbackContext) -> int:
-#     """Ask the user for a description of a custom category."""
-#     await update.message.reply_text(
-#         'Alright, please send me the category first, for example "Most impressive skill"'
-#     )
-#
-#     return TYPING_CHOICE
-#
-
-
-#
-# async def received_information(update: Update, context:CallbackContext) -> int:
-#     """Store info provided by user and ask for the next category."""
-#     user_data = context.user_data
-#     text = update.message.text
-#     category = user_data["choice"]
-#     user_data[category] = text
-#     del user_data["choice"]
-#
-#     await update.message.reply_text(
-#         "Neat! Just so you know, this is what you already told me:"
-#         f"{facts_to_str(user_data)}You can tell me more, or change your opinion"
-#         " on something.",
-#         reply_markup=markup,
-#     )
-#
-#     return CHOOSING
 async def cancel(update: Update, context: CallbackContext) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
@@ -152,44 +82,6 @@ async def input_type(update: Update, context: CallbackContext) -> int:
         return I_NAME
 
 
-# async def name_handler(update: Update, context: CallbackContext) -> int:
-#     """Handles Name input"""
-#     user = update.message.from_user
-#
-#     print(facts_to_str(context.user_data))
-#     u_type=update.message.text.lower()
-#     msg="Something went wrong. Please try again"
-#     if u_type == "company":
-#         msg=update.message.text+"I see! Please tell us your company name."
-#     if u_type == "investor":
-#         msg="I see! Please us your name."
-#     logger.info("Input Type of %s: %s", user.first_name, update.message.text)
-#     await update.message.reply_text(
-#         msg,
-#         reply_markup=ReplyKeyboardRemove(),
-#     )
-#     if u_type == "company":
-#         return C_NAME
-#     if u_type == "investor":
-#         return I_NAME
-
-# async def received_information(update: Update, context: CallbackContext) -> int:
-#     user_data = context.user_data
-#     text = update.message.text
-#     category = user_data["CATEGORY"]
-#     user_data[category] = text
-#     # del user_data["choice"]
-#     print(context.user_data)
-#
-#     if "company" in user_data.keys():
-#         return C_NAME
-#     if "investor" in user_data.keys():
-#         return I_NAME
-
-# def facts_to_str(user_data: Dict[str, str]) -> str:
-#     """Helper function for formatting the gathered user info."""
-#     facts = [f"{key} - {value}" for key, value in user_data.items()]
-#     return "\n".join(facts).join(["\n", "\n"])
 def facts_to_str(user_data: Dict[str, str]) -> str:
     """Helper function for formatting the gathered user info."""
     print("Test facts")
@@ -241,7 +133,6 @@ async def company_handler(update: Update, context: CallbackContext) -> int:
         await update.message.reply_text(
             f" Thank you {update.message.from_user.first_name}! your information successfully saved"
         )
-        # context.user_data={}
         context.user_data.clear()
 
         return ConversationHandler.END
@@ -349,27 +240,14 @@ def main() -> None:
             INPUT_TYPE: [MessageHandler(filters.Regex("^(Company|Investor)$"), input_type)],
             C_NAME: [MessageHandler(filters.TEXT, company_handler)],
             I_NAME: [MessageHandler(filters.TEXT, investor_handler)],
-            # LOCATION: [
-            #     MessageHandler(filters.LOCATION, location),
-            #     CommandHandler("skip", skip_location),
-            # ],
-            # BIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, bio)],
-            # TYPING_REPLY: [
-            #     MessageHandler(
-            #         filters.TEXT & ~(filters.COMMAND | filters.Regex("^Done$")),
-            #         received_information,
-            #     )
-            # ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
 
     )
 
     application.add_handler(conv_handler)
-    # application.add_handler(CommandHandler("add", add_command_handler))
     application.run_polling(stop_signals=None)
 
 
 if __name__ == '__main__':
     main()
-    print(TELEGRAM_BOT_TOKEN)
