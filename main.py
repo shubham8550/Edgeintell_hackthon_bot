@@ -27,12 +27,8 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
 # Constants
-
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
-
-
 INPUT_TYPE, TYPING_REPLY = range(0, 2)
 C_NAME, C_WEBSITE, C_ABOUT = range(10, 13)
 I_NAME, I_COMPANY, IC_WEBSITE, I_LINKEDIN = range(20, 24)
@@ -40,8 +36,6 @@ I_NAME, I_COMPANY, IC_WEBSITE, I_LINKEDIN = range(20, 24)
 
 # METHODS
 async def start(update: Update, context: CallbackContext) -> int:
-    """Starts the conversation and asks the user about their gender."""
-
     reply_keyboard = [["Company", "Investor"]]
 
     await update.message.reply_text(
@@ -67,7 +61,6 @@ async def cancel(update: Update, context: CallbackContext) -> int:
 
 
 async def input_type(update: Update, context: CallbackContext) -> int:
-    """Stores the selected gender and asks for a photo."""
     user = update.message.from_user
     u_type = update.message.text.lower()
     msg = "Something went wrong. Please try again"
@@ -281,8 +274,6 @@ async def add_command_handler(update: Update, context: CallbackContext) -> int:
 
 
 def main() -> None:
-    """Run the bot."""
-
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start), CommandHandler("add", add_command_handler)],
