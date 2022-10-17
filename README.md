@@ -7,3 +7,7 @@ Creation of Telegram Bot in Python for Data Logging
 - [Shubham Badgujar](https://github.com/shubham8550)
 - [Gayatri Dunakhe ](https://github.com/GayatriDunakhe)
 - [Lokesh Bortake](https://github.com/lokesh-bhortake)
+
+---
+
+[Demo Video](https://drive.google.com/file/d/1PM69VIkX1mWU59CVu8rqmeog4_B0MiYT/view?usp=sharing)
